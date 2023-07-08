@@ -1,0 +1,8 @@
+(LOCALPASTA)=>
+let
+    Fonte = Xml.Tables(File.Contents(LOCALPASTA)),
+    TipoAlterado = Table.TransformColumnTypes(Fonte,{{"Attribute:versao", Int64.Type}}),
+    OutrasColunasRemovidas = Table.SelectColumns(TipoAlterado,{"NFe"}),
+    #"NFe Expandido" = Table.ExpandTableColumn(OutrasColunasRemovidas, "NFe", {"infNFe"}, {"infNFe"})
+in
+    #"NFe Expandido"
