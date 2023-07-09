@@ -6,13 +6,13 @@ let
     vendas_Sheet = Fonte{[Item="vendas",Kind="Sheet"]}[Data],
     LinhasFiltradas = Table.SelectRows(vendas_Sheet, each ([Column3] = "aprovada" or [Column3] = "status da venda")),
     CabecalhosPromovidos = Table.PromoteHeaders(LinhasFiltradas, [PromoteAllScalars=true]),
-    TipoAlterado = Table.TransformColumnTypes(CabecalhosPromovidos,{{"data da venda", type date}, {"valor da venda original", type number}}),
-    OutrasColunasRemovidas = Table.SelectColumns(TipoAlterado,{"data da venda", "valor da venda original", "modalidade", "número de parcelas", "número da autorização (Auto)"}),
+    TipoAlterado = Table.TransformColumnTypes(CabecalhosPromovidos,{{"data da venda", type date}, {"valor da venda original", type number}, {"taxa MDR", Percentage.Type}}),
+    OutrasColunasRemovidas = Table.SelectColumns(TipoAlterado,{"data da venda", "valor da venda original", "modalidade", "número de parcelas", "taxa MDR", "número da autorização (Auto)"}),
     ValorSubstituido = Table.ReplaceValue(OutrasColunasRemovidas,each [modalidade],
     each if [modalidade] = "crédito" and [número de parcelas] = 1 then "CARTAO" 
     else if [modalidade] = "débito" then "CARTAODBTO"
     else [modalidade] ,Replacer.ReplaceText,{"modalidade"}),
-    ColunasRenomeadas = Table.RenameColumns(ValorSubstituido,{{"data da venda", "DATA"}, {"valor da venda original", "VALOR"}, {"modalidade", "NATUREZA"}, {"número da autorização (Auto)", "AUTORIZACAO"}, {"número de parcelas", "PARCELAS"}}),
+    ColunasRenomeadas = Table.RenameColumns(ValorSubstituido,{{"data da venda", "DATA"}, {"valor da venda original", "VALOR"}, {"modalidade", "NATUREZA"}, {"número da autorização (Auto)", "AUTORIZACAO"}, {"número de parcelas", "PARCELAS"}, {"taxa MDR", "TAXA"}}),
     TextoAparado = Table.TransformColumns(ColunasRenomeadas,{{"AUTORIZACAO", Text.Trim, type text}}),
     Ultimoscaracteresextraidos = Table.TransformColumns(TextoAparado, {{"AUTORIZACAO", each Text.End(_, 6), type text}})
 in
