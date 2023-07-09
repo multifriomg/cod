@@ -2,13 +2,13 @@
 
 let
     Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
-    // Fonte = Excel.Workbook(File.Contents("C:\Users\Thiago\Downloads\venda-20230709143912-parte-1-de-1.xls"), null, true),
+    //Fonte = Excel.Workbook(File.Contents("C:\Users\Thiago\Downloads\venda-20230709143912-parte-1-de-1.xls"), null, true),
 
 
     Sheet2 = Fonte{[Name="Sheet1"]}[Data],
     LinhasFiltradas = Table.SelectRows(Sheet2, each (Text.Upper([Column27]) = "APROVADA" or Text.Upper([Column27]) = "STATUS")),
     CabecalhosPromovidos = Table.PromoteHeaders(LinhasFiltradas, [PromoteAllScalars=true]),
-    OutrasColunasRemovidas = Table.SelectColumns(CabecalhosPromovidos,{"Data da autorização da venda", "Forma de pagamento", "Quantidade de parcelas", "Valor da venda", "Código de autorização"}),
+    OutrasColunasRemovidas = Table.SelectColumns(CabecalhosPromovidos,{"Data da autorização da venda", "Forma de pagamento", "Quantidade de parcelas", "Valor da venda", "Taxas (%)", "Código de autorização"}),
     TextoAparado = Table.TransformColumns(OutrasColunasRemovidas,{{"Data da autorização da venda", Text.Trim, type text}, {"Forma de pagamento", Text.Trim, type text}, {"Quantidade de parcelas", Text.Trim, type text}, {"Valor da venda", Text.Trim, type text}, {"Código de autorização", Text.Trim, type text}}),
     PersonalizacaoAdicionada = Table.AddColumn(TextoAparado, "Personalizar", each [Data da autorização da venda]&[Forma de pagamento]&[Quantidade de parcelas]&[Valor da venda]&[Código de autorização]),
     DuplicatasRemovidas = Table.Distinct(PersonalizacaoAdicionada, {"Personalizar"}),
@@ -22,7 +22,8 @@ let
     else if [Forma de pagamento] = "Crédito parcelado loja" and [Quantidade de parcelas] <= 6 then "CARTAO2A6" 
     else if [Forma de pagamento] = "Crédito parcelado loja" and [Quantidade de parcelas] >= 7 then "CARTAO7A12" 
     else null),
-    ColunasRenomeadas = Table.RenameColumns(ColunaCondicionalAdicionada,{{"Data da autorização da venda", "DATA"}, {"Valor da venda", "VALOR"}, {"Código de autorização", "AUTORIZACAO"}, {"Quantidade de parcelas", "PARCELAS"}}),
-    OutrasColunasRemovidas1 = Table.SelectColumns(ColunasRenomeadas,{"DATA", "VALOR", "NATUREZA", "PARCELAS", "AUTORIZACAO"})
+    ColunasRenomeadas = Table.RenameColumns(ColunaCondicionalAdicionada,{{"Data da autorização da venda", "DATA"}, {"Valor da venda", "VALOR"}, {"Código de autorização", "AUTORIZACAO"}, {"Quantidade de parcelas", "PARCELAS"}, {"Taxas (%)", "TAXA"}}),
+    OutrasColunasRemovidas1 = Table.SelectColumns(ColunasRenomeadas,{"DATA", "PARCELAS", "VALOR", "TAXA", "AUTORIZACAO", "NATUREZA"}),
+    LinhasFiltradasParametros = Table.SelectRows(OutrasColunasRemovidas1, each [DATA] = #date(ANO, MES, DIA))
 in
-    OutrasColunasRemovidas1
+    LinhasFiltradasParametros
