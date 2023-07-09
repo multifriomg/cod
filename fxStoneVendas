@@ -1,0 +1,23 @@
+(LOCALPASTA)=>
+let
+    Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
+    //Fonte = Excel.Workbook(File.Contents("C:\Users\Thiago\Downloads\Relatorio de Vendas - 2023-01-10 a 2023-07-09.xlsx"), null, true),
+    #"Sheet 1_Sheet" = Fonte{[Item="Sheet 1",Kind="Sheet"]}[Data],
+    CabecalhosPromovidos = Table.PromoteHeaders(#"Sheet 1_Sheet", [PromoteAllScalars=true]),
+    LinhasFiltradas = Table.SelectRows(CabecalhosPromovidos, each ([ÚLTIMO STATUS] = "Capturada")),
+    TipoAlterado = Table.TransformColumnTypes(LinhasFiltradas,{{"HORA DA VENDA", type date}, {"VALOR BRUTO", type number}, {"VALOR LÍQUIDO", type number}}),
+    SubtracaoInserida = Table.AddColumn(TipoAlterado, "Subtração", each [VALOR BRUTO] - [VALOR LÍQUIDO], type number),
+    PersonalizacaoAdicionada = Table.AddColumn(SubtracaoInserida, "TAXA", each ([Subtração]*100)/[VALOR BRUTO]),
+    Arredondado = Table.TransformColumns(PersonalizacaoAdicionada,{{"TAXA", each Number.Round(_, 2), type number}}),
+    DividirColunaporDelimitador = Table.SplitColumn(Arredondado, "TIPO", Splitter.SplitTextByDelimiter(" ", QuoteStyle.Csv), {"TIPO.1", "TIPO.2"}),
+    ValorSubstituido = Table.ReplaceValue(DividirColunaporDelimitador,"x","",Replacer.ReplaceText,{"TIPO.2"}),
+    TipoAlterado1 = Table.TransformColumnTypes(ValorSubstituido,{{"TIPO.2", Int64.Type}}),
+    ColunaCondicionalAdicionada = Table.AddColumn(TipoAlterado1, "Personalizar.1", each if [TIPO.1] = "Débito" then "CARTAODBTO" 
+    else if [TIPO.1] = "Crédito" and [TIPO.2] = 1  then "CARTAO" 
+    else if [TIPO.1] = "Crédito" and [TIPO.2] > 1 and [TIPO.2] < 7 then "CARTAO2A6" 
+    else if [TIPO.1] = "Crédito" and [TIPO.2] > 6 and [TIPO.2] < 13 then "CARTAO7A12" 
+    else null),
+    OutrasColunasRemovidas = Table.SelectColumns(ColunaCondicionalAdicionada,{"HORA DA VENDA", "TIPO.2", "VALOR BRUTO", "TAXA", "Personalizar.1"}),
+    ColunasRenomeadas = Table.RenameColumns(OutrasColunasRemovidas,{{"TIPO.2", "PARCELAS"}, {"VALOR BRUTO", "VALOR"}, {"HORA DA VENDA", "DATA"}, {"Personalizar.1", "NATUREZA"}})
+in
+    ColunasRenomeadas
