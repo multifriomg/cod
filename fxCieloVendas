@@ -23,7 +23,6 @@ let
     else if [Forma de pagamento] = "Crédito parcelado loja" and [Quantidade de parcelas] >= 7 then "CARTAO7A12" 
     else null),
     ColunasRenomeadas = Table.RenameColumns(ColunaCondicionalAdicionada,{{"Data da autorização da venda", "DATA"}, {"Valor da venda", "VALOR"}, {"Código de autorização", "AUTORIZACAO"}, {"Quantidade de parcelas", "PARCELAS"}}),
-    OutrasColunasRemovidas1 = Table.SelectColumns(ColunasRenomeadas,{"DATA", "VALOR", "NATUREZA", "PARCELAS", "AUTORIZACAO"}),
-    LinhasFiltradasParametros = Table.SelectRows(OutrasColunasRemovidas1, each [DATA] = #date(ANO, MES, DIA))
+    OutrasColunasRemovidas1 = Table.SelectColumns(ColunasRenomeadas,{"DATA", "VALOR", "NATUREZA", "PARCELAS", "AUTORIZACAO"})
 in
-    LinhasFiltradasParametros
+    OutrasColunasRemovidas1
