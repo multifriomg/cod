@@ -2,7 +2,7 @@
 
 let
     Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
-    //Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Desktop\CAIXA\venda-20230710145115-parte-1-de-1.xls"), null, true),
+    //Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Desktop\CAIXA\cielo1.xls"), null, true),
 
 
     Sheet2 = Fonte{[Name="Sheet1"]}[Data],
