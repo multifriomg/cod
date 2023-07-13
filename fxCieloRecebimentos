@@ -1,7 +1,7 @@
 (LOCALPASTA)=>
 let
     Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
-    // Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Downloads\recebimento-detalhado-20230713090313-parte-1-de-1.xls"), null, true),
+    //Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Downloads\recebimento-detalhado-20230713090313-parte-1-de-1.xls"), null, true),
     Sheet2 = Fonte{[Name="Sheet1"]}[Data],
     LinhasFiltradas = Table.SelectRows(Sheet2, each ([Column1] = "Pago" or [Column1] = "Status")),
     CabecalhosPromovidos = Table.PromoteHeaders(LinhasFiltradas, [PromoteAllScalars=true]),
@@ -22,6 +22,7 @@ let
     else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "CREDITO"  then 4
     else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "CREDITO"  then 5 
     else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "DEBITO"  then 6 
-    else 7)
+    else 7),
+    #"Coluna multiplicada" = Table.TransformColumns(#"Coluna Condicional Adicionada1", {{"TAXA (R$)", each _ * -1, Currency.Type}})
 in
-    #"Coluna Condicional Adicionada1"
+    #"Coluna multiplicada"
