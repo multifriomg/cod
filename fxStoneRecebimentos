@@ -1,0 +1,27 @@
+(LOCALPASTA)=>
+let
+    Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
+    // Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Downloads\Relatorio de Recebimentos - 01 abr, 2023 a 13 jul, 2023.xlsx"), null, true),
+    #"Sheet 1_Sheet" = Fonte{[Item="Sheet 1",Kind="Sheet"]}[Data],
+    CabecalhosPromovidos = Table.PromoteHeaders(#"Sheet 1_Sheet", [PromoteAllScalars=true]),
+    #"Duplicatas Removidas" = Table.Distinct(CabecalhosPromovidos),
+    LinhasFiltradas = Table.SelectRows(#"Duplicatas Removidas", each [ÚLTIMO STATUS] = "Pago"),
+    TipoAlterado = Table.TransformColumnTypes(LinhasFiltradas,{{"STONECODE", Int64.Type}, {"DOCUMENTO", type text}, {"NOME FANTASIA", type text}, {"CATEGORIA", type text}, {"HORA DA VENDA", type datetime}, {"DATA DE VENCIMENTO", type date}, {"TIPO", type text}, {"Nº DA PARCELA", Int64.Type}, {"QTD DE PARCELAS", Int64.Type}, {"BANDEIRA", type text}, {"STONE ID", Int64.Type}, {"N° CARTÃO", type text}, {"VALOR BRUTO", Currency.Type}, {"VALOR LÍQUIDO", Currency.Type}, {"DESCONTO DE ANTECIPAÇÃO", Int64.Type}, {"DESCONTO DE MDR", Currency.Type}, {"ÚLTIMO STATUS", type text}, {"DATA DO ÚLTIMO STATUS", type datetime}, {"CHAVE EXTERNA", type any}}),
+    OutrasColunasRemovidas = Table.SelectColumns(TipoAlterado,{"DATA DE VENCIMENTO", "BANDEIRA", "TIPO", "VALOR BRUTO", "DESCONTO DE MDR", "VALOR LÍQUIDO"}),
+    PersonalizacaoAdicionada = Table.AddColumn(OutrasColunasRemovidas, "TAXA (%)", each [DESCONTO DE MDR]/[VALOR BRUTO]),
+    TipoAlterado1 = Table.TransformColumnTypes(PersonalizacaoAdicionada,{{"TAXA (%)", Percentage.Type}}),
+    ColunasRenomeadas = Table.RenameColumns(TipoAlterado1,{{"DATA DE VENCIMENTO", "DATA"}, {"DESCONTO DE MDR", "TAXA (R$)"}, {"VALOR LÍQUIDO", "VALOR LIQUIDO"}}),
+    PersonalizacaoAdicionada1 = Table.AddColumn(ColunasRenomeadas, "OPERADORA", each "STONE"),
+    PersonalizacaoAdicionada2 = Table.AddColumn(PersonalizacaoAdicionada1, "Personalizar", each if Text.Contains(Text.Upper([TIPO]), "CRÉDITO") then "CREDITO" else if Text.Contains(Text.Upper([TIPO]), "DÉBITO") then "DEBITO" else null),
+    #"Coluna Condicional Adicionada" = Table.AddColumn(PersonalizacaoAdicionada2, "ORDEM", 
+    each if Text.Upper([BANDEIRA]) = "AMERICANEXPRESS" and [Personalizar] = "CREDITO"  then 20
+    else if Text.Upper([BANDEIRA]) = "AMERICANEXPRESS" and [Personalizar] = "DEBITO"  then 21
+    else if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "CREDITO"  then 22
+    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "CREDITO"  then 23
+    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "CREDITO"  then 24
+    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "DEBITO"  then 25
+    else if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "DEBITO"  then 26
+    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "DEBITO"  then 27 
+    else 28)
+in
+    #"Coluna Condicional Adicionada"
