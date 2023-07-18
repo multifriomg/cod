@@ -1,0 +1,28 @@
+(LOCALPASTA)=>
+let
+    Fonte = Excel.Workbook(File.Contents(LOCALPASTA), null, true),
+    //Fonte = Excel.Workbook(File.Contents("C:\Users\Juliana\Downloads\recebimento-detalhado-20230713090313-parte-1-de-1.xls"), null, true),
+    Sheet2 = Fonte{[Name="Sheet1"]}[Data],
+    LinhasFiltradas = Table.SelectRows(Sheet2, each ([Column1] = "Pago" or [Column1] = "Status")),
+    CabecalhosPromovidos = Table.PromoteHeaders(LinhasFiltradas, [PromoteAllScalars=true]),
+    #"Duplicatas Removidas" = Table.Distinct(CabecalhosPromovidos),
+    TipoAlterado = Table.TransformColumnTypes(#"Duplicatas Removidas",{{"Status", type text}, {"Tipo de Lançamento", type text}, {"Descrição", type text}, {"Banco", type text}, {"Agência", Int64.Type}, {"Conta", type text}, {"Gravame", type text}, {"CNPJ da instituição origem da negociação", type text}, {"Nome da instituição origem da negociação", type text}, {"Estabelecimento", Int64.Type}, {"Data de pagamento", type date}, {"Data do lançamento", type date}, {"Data da autorização da venda", type date}, {"Bandeira", type text}, {"Forma de Pagamento", type text}, {"Número da parcela", Int64.Type}, {"Quantidade de parcelas", Int64.Type}, {"Número do cartão", type text}, {"Código da transação", Int64.Type}, {"Código de autorização", type text}, {"NSU", Int64.Type}, {"Valor bruto", Currency.Type}, {"Valor descontado", Currency.Type}, {"Valor líquido", Currency.Type}, {"Valor cobrado", Currency.Type}, {"Valor pendente", Currency.Type}, {"Valor total", Currency.Type}, {"Receba Rápido", type text}, {"Canal de venda", type text}, {"Tipo de captura", type text}, {"Resumo da operação", Int64.Type}, {"Taxas (%)", type number}, {"Tarifa", Int64.Type}, {"Código da venda", type number}, {"Número da máquina", Int64.Type}, {"Período considerado", type text}, {"Número da operação", Int64.Type}, {"Taxa de antecipação", Int64.Type}, {"Taxa de embarque", Int64.Type}, {"Valor da entrada", Int64.Type}, {"Número do pedido", type text}, {"Número da nota fiscal", Int64.Type}}),
+    OutrasColunasRemovidas = Table.SelectColumns(TipoAlterado,{"Tipo de Lançamento", "Data de pagamento", "Bandeira", "Forma de Pagamento", "Valor bruto", "Valor descontado", "Valor líquido", "Taxas (%)"}),
+    ColunasRenomeadas = Table.RenameColumns(OutrasColunasRemovidas,{{"Tipo de Lançamento", "TIPOO"}, {"Data de pagamento", "DATA"}, {"Bandeira", "BANDEIRA"}, {"Forma de Pagamento", "FORMA DE PAGAMENTO"}, {"Valor bruto", "VALOR BRUTO"}, {"Valor descontado", "TAXA (R$)"}, {"Valor líquido", "VALOR LIQUIDO"}, {"Taxas (%)", "TAXA (%)"}}),
+    ColunaCondicionalAdicionada = Table.AddColumn(ColunasRenomeadas, "TIPO", each if Text.Contains(Text.Upper([TIPOO]), "ALUGUEL") then [TIPOO] else [FORMA DE PAGAMENTO]),
+    OutrasColunasemovidas1 = Table.SelectColumns(ColunaCondicionalAdicionada,{"DATA", "BANDEIRA", "FORMA DE PAGAMENTO", "VALOR BRUTO", "TAXA (R$)", "VALOR LIQUIDO", "TAXA (%)", "TIPO"}),
+    Colunadividida = Table.TransformColumns(OutrasColunasemovidas1, {{"TAXA (%)", each _ / 100, type number}}),
+    TipoAlterado1 = Table.TransformColumnTypes(Colunadividida,{{"TAXA (%)", Percentage.Type}}),
+    PersonalizacaoAdicionada = Table.AddColumn(TipoAlterado1, "OPERADORA", each "CIELO"),
+    #"Coluna Condicional Adicionada" = Table.AddColumn(PersonalizacaoAdicionada, "Personalizar", each if Text.Contains(Text.Upper([FORMA DE PAGAMENTO]), "CRÉDITO") then "CREDITO" else if Text.Contains(Text.Upper([FORMA DE PAGAMENTO]), "DÉBITO") then "DEBITO" else null),
+    #"Coluna Condicional Adicionada1" = Table.AddColumn(#"Coluna Condicional Adicionada", "ORDEM", 
+    each if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "CREDITO"  then 4 
+    else if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "DEBITO"  then 2 
+    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "DEBITO"  then 3 
+    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "CREDITO"  then 6
+    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "CREDITO"  then 5 
+    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "DEBITO"  then 1 
+    else 7),
+    #"Coluna multiplicada" = Table.TransformColumns(#"Coluna Condicional Adicionada1", {{"TAXA (R$)", each _ * -1, Currency.Type}})
+in
+    #"Coluna multiplicada"
