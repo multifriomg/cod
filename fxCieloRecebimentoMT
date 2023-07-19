@@ -18,10 +18,10 @@ let
     #"Coluna Condicional Adicionada1" = Table.AddColumn(#"Coluna Condicional Adicionada", "ORDEM", 
     each if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "CREDITO"  then 4 
     else if Text.Upper([BANDEIRA]) = "VISA" and [Personalizar] = "DEBITO"  then 2 
-    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "DEBITO"  then 3 
+    else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "DEBITO"  then 1 
     else if Text.Upper([BANDEIRA]) = "MASTERCARD" and [Personalizar] = "CREDITO"  then 6
     else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "CREDITO"  then 5 
-    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "DEBITO"  then 1 
+    else if Text.Upper([BANDEIRA]) = "ELO" and [Personalizar] = "DEBITO"  then 3 
     else 7),
     #"Coluna multiplicada" = Table.TransformColumns(#"Coluna Condicional Adicionada1", {{"TAXA (R$)", each _ * -1, Currency.Type}})
 in
